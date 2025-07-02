@@ -42,8 +42,10 @@ ytdl_format_options = {
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
-    'source_address': '0.0.0.0'
+    'source_address': '0.0.0.0',
+    'cookiefile': 'cookies.txt'
 }
+
 
 ytdl = YoutubeDL(ytdl_format_options)
 
