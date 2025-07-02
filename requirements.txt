@@ -1,2 +1,7 @@
 discord.py
+yt-dlp
+aiohttp
 python-dotenv
+openai
+flask
+requests
