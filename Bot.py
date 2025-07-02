@@ -43,7 +43,7 @@ ytdl_format_options = {
     'quiet': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
-    'cookiefile': 'cookies.txt'
+
 }
 
 
