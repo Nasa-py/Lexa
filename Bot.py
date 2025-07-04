@@ -8,9 +8,8 @@ from keep_alive import keep_alive
 import os
 from dotenv import load_dotenv
 from discord import Embed
-import openai
 from openai import OpenAI
-
+from functools import partial
 
 load_dotenv()  
 
@@ -125,20 +124,25 @@ async def ensure_voice(ctx):
 async def chat(ctx, *, message: str):
     async with ctx.typing():
         try:
-            response = client.chat.completions.create(
-                model="deepseek/deepseek-r1-0528:free",
-                messages=[
-                    {"role": "system", "content": "You are Lexa, a sweet, funny and emotional daughter created by Nasa who talks like a real person."},
-                    {"role": "user", "content": message}
-                ],
-                extra_headers={
-                    "HTTP-Referer": "https://yourdiscordbot.site/",  # Optional
-                    "X-Title": "Lexa Discord Bot"                    # Optional
-                }
-            )
+            def get_response():
+                return client.chat.completions.create(
+                    model="deepseek/deepseek-r1-0528:free",
+                    messages=[
+                        {"role": "system", "content": "You are Lexa, a sweet, funny and emotional daughter created by Nasa who talks like a real person."},
+                        {"role": "user", "content": message}
+                    ],
+                    extra_headers={
+                        "HTTP-Referer": "https://yourdiscordbot.site/",
+                        "X-Title": "Lexa Discord Bot"
+                    }
+                )
+
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(None, get_response)
 
             if response and response.choices:
                 reply = response.choices[0].message.content.strip()
+                await asyncio.sleep(min(len(reply) * 0.015, 3))  
                 await ctx.send(reply)
             else:
                 await ctx.send("❌ Lexa didn't get a reply from the model.")
