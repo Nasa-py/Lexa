@@ -44,7 +44,7 @@ git clone https://github.com/yourusername/lexa-bot.git
 cd lexa-bot
 ```
 
-### Contributing
+### 🤝 Contribution
 - Contributions are welcome! If you'd like to contribute to this project, please follow these steps:
   ### 1. Fork this repository.
   ### 2. Create a new branch for your feature or bug fix.
