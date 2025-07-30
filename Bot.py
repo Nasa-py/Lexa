@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import aiohttp
 import asyncio
+import random
 from yt_dlp import YoutubeDL
 from discord import FFmpegPCMAudio
 from keep_alive import keep_alive
@@ -59,6 +60,7 @@ banned_words = [
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f'{bot.user} has connected to Discord!')
     print("-------------------------------------")
 
@@ -407,6 +409,64 @@ async def on_error(event, *args, **kwargs):
     print(f"❌ Unhandled error in event {event}:")
     import traceback
     traceback.print_exc()
+
+@bot.tree.command(name="ping", description="Check the bot's latency")
+async def ping(interaction: discord.Interaction):
+    latency = round(bot.latency * 1000)  # Convert to ms
+
+    embed = discord.Embed(
+        title="🏓 Pong!",
+        description=f"Bot latency: **{latency}ms**",
+        color=discord.Color.green() if latency < 100 else discord.Color.orange() if latency < 200 else discord.Color.red()
+    )
+
+    await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="rps", description="💫 Play Rock Paper Scissors with Lexa!")
+@discord.app_commands.describe(choice="Choose Rock, Paper, or Scissors")
+@discord.app_commands.choices(choice=[
+    discord.app_commands.Choice(name="🪨 Rock", value="rock"),
+    discord.app_commands.Choice(name="📄 Paper", value="paper"),
+    discord.app_commands.Choice(name="✂️ Scissors", value="scissors")
+])
+async def rps(interaction: discord.Interaction, choice: discord.app_commands.Choice[str]):
+    # Bot's choice
+    bot_choice = random.choice(["rock", "paper", "scissors"])
+
+    emojis = {
+        "rock": "🪨",
+        "paper": "📄",
+        "scissors": "✂️"
+    }
+
+    user_choice = choice.value
+
+    # Result logic
+    if user_choice == bot_choice:
+        result = "🤝 It's a tie!"
+        color = discord.Color.yellow()
+    elif (user_choice == "rock" and bot_choice == "scissors") or \
+         (user_choice == "paper" and bot_choice == "rock") or \
+         (user_choice == "scissors" and bot_choice == "paper"):
+        result = "🎉 You win!"
+        color = discord.Color.green()
+    else:
+        result = "😔 You lose!"
+        color = discord.Color.red()
+
+    embed = discord.Embed(
+        title="🎮 Rock Paper Scissors",
+        description=(
+            f"**You:** {emojis[user_choice]} {user_choice.title()}\n"
+            f"**Lexa:** {emojis[bot_choice]} {bot_choice.title()}\n\n"
+            f"{result}"
+        ),
+        color=color
+    )
+
+    await interaction.response.send_message(embed=embed)
+
 
 keep_alive()
 
