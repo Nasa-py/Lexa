@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import datetime
 import aiohttp
 import asyncio
 import random
@@ -23,6 +24,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+afk_users = {} 
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
@@ -53,8 +55,8 @@ volume_level = 0.5  # Default volume (50%)
 
 
 banned_words = [
-    "bsdk", "bc", "mc", "tmck", "fuck", "f****", "f**k", "***k", "bitch",
-    "chutiya", "chutiyeee", "c h u t i y a", "c hhutiya","tits"
+    "bsdk", "bc", "mc", "tmck", "fuck", "f****", "f**k", "***k", "bitch","maa","bkl","BKL",
+    "chutiya", "chutiyeee", "c h u t i y a", "c hhutiya","tits","maa ke pas lund hey",
     "mother chudmother", "chud",   "darpok", "aternos", "https://discord.gg", "sybau","bhenchod","nigga","teri ma di phuddi ch lund" ,"teri ma di bund ch kalla lun" , "salla bund deni deya" , "madarchod" , "teri bhen di phuddi"
 ]
 
@@ -98,13 +100,6 @@ async def on_member_remove(member):
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    content = message.content.lower().replace(" ", "")
-    if any(word.replace(" ", "") in content for word in banned_words):
-        await message.delete()
-        await message.channel.send(f"{message.author.mention} ❌ No profanity or banned words allowed!")
-        return
-
     await bot.process_commands(message)
 
 async def ensure_voice(ctx):
@@ -154,6 +149,90 @@ async def chat(ctx, *, message: str):
 
 
 
+
+@bot.command()
+async def afk(ctx, *, reason: str = "AFK"):
+    afk_users[ctx.author.id] = {
+        "reason": reason,
+        "time": datetime.datetime.now(datetime.timezone.utc),
+        "mentions": []
+    }
+
+    unix_time = int(afk_users[ctx.author.id]["time"].timestamp())
+
+    embed = discord.Embed(
+        title="💤 AFK Activated",
+        description=f"{ctx.author.mention} is now AFK\n**Reason:** {reason}\n"
+                    f"⏳ Since: <t:{unix_time}:R>",  # Relative time
+        color=discord.Color.blue()
+    )
+    embed.set_footer(text="Lexa is watching 👀")
+    await ctx.send(embed=embed)
+
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    content = message.content.lower().replace(" ", "")
+    if any(word.replace(" ", "") in content for word in banned_words):
+        await message.delete()
+        await message.channel.send(f"{message.author.mention} ❌ No profanity or banned words allowed!")
+        return
+
+
+
+
+    # If AFK user sends a message → remove AFK & send Welcome Back
+    if message.author.id in afk_users:
+        afk_info = afk_users.pop(message.author.id)
+        afk_since = afk_info["time"]
+        unix_afk = int(afk_since.timestamp())
+
+        # Mentions info
+        mention_text = ""
+        if afk_info["mentions"]:
+            mention_text += f"\n\n**You were pinged while AFK:**\n"
+            for user, jump_url, when in afk_info["mentions"]:
+                unix_ping = int(when.timestamp())
+                mention_text += f"- {user.mention} at <t:{unix_ping}:t> → [Click Here]({jump_url})\n"
+        else:
+            mention_text = "\n\nNo one pinged you while AFK 🙂"
+
+        # Welcome Back embed
+        embed = discord.Embed(
+            title=f"👋 Welcome Back {message.author.display_name}!",
+            description=f"You were AFK since <t:{unix_afk}:R>\n{mention_text}",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Lexa missed you ✨")
+        await message.channel.send(embed=embed)
+
+    # If AFK user is mentioned → notify the pinger
+    for mention in message.mentions:
+        if mention.id in afk_users:
+            afk_info = afk_users[mention.id]
+            unix_time = int(afk_info["time"].timestamp())
+
+            # Save ping info
+            afk_info["mentions"].append(
+                (message.author, message.jump_url, datetime.datetime.now(datetime.timezone.utc))
+            )
+
+            embed = discord.Embed(
+                title="💤 AFK Notice",
+                description=f"{mention.mention} is AFK\n"
+                            f"**Reason:** {afk_info['reason']}\n"
+                            f"⏳ Since: <t:{unix_time}:R>",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text="Lexa’s AFK System ⚡")
+            await message.channel.send(embed=embed)
+
+    await bot.process_commands(message)
+
+
 @bot.command(aliases=["jk"])
 async def joke(ctx):
     url = "https://jokeapi-v2.p.rapidapi.com/joke/Any?format=json"
@@ -182,7 +261,7 @@ async def joke(ctx):
 async def help(ctx):
     embed = discord.Embed(
         title="🧠 Bot Command Guide",
-        description="Hey love 😘 here’s everything I can do for you:",
+        description="**Yoo👋 here’s everything I can do for you:**",
         color=discord.Color.purple()
     )
 
@@ -193,7 +272,8 @@ async def help(ctx):
 `!pause` — Pause music  
 `!resume` — Resume music  
 `!skip` — Skip current song  
-`!stop` — Stop and clear queue  
+`!stop` — Stop and clear queue 
+`!volume` — +Vol & -Vol
 `!queue` — Show current queue  
 `!loop` — Toggle loop  
 `!join` — Join your voice channel  
@@ -210,8 +290,15 @@ async def help(ctx):
 `!hello` — Say hello  
 `!goodbye` — Say goodbye  
 `!joke` — Sends a random joke  
-`!lexa <msg>` — Chat with Lexa 💖
 """, inline=False)
+
+    embed.add_field(name="💭 Chat With Lexa",value="""
+`!lexa <msg>` — Chat with Lexa 💖
+    """, inline=False)
+
+    embed.add_field(name="💤 AFK Cammand",value="""
+`!afk <msg>` — Use This When You Wanna Go AFK 
+    """, inline=False)
 
     embed.add_field(name="🔧 Bot Stuff", value="`!link` — Bot invite link", inline=False)
 
