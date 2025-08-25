@@ -5,7 +5,7 @@ import aiohttp
 import asyncio
 import random
 from yt_dlp import YoutubeDL
-from discord import FFmpegPCMAudio
+from discord import Color, FFmpegPCMAudio
 from keep_alive import keep_alive
 import os
 from dotenv import load_dotenv
@@ -316,10 +316,13 @@ async def help(ctx):
 
 @bot.command(aliases=["inv"])
 async def link(ctx):
-    await ctx.send("Here's My Invite Link: https://discord.com/api/oauth2/authorize?client_id=1383397568679248003&permissions=8&scope=bot")
-    await ctx.send("Created by Nasa ")
-    await ctx.send("Instagram:_Nasa_40")
+    embed = discord.Embed(
+        title = "Here's My Invite Link: https://discord.com/oauth2/authorize?client_id=1383397568679248003",
+        description = "**Created by Nasa:** http://nasa-py.github.io/contact-me ",
+        color = discord.Color.yellow()
+    )
 
+    await ctx.send(embed=embed)
 
 @bot.command(aliases=["j"])
 async def join(ctx):
